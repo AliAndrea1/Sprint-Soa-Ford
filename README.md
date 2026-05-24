@@ -3,6 +3,13 @@
 > Projeto desenvolvido para o Challenge Ford FIAP 2026 — Inteligência Competitiva Automotiva
 
 ---
+## Equipe
+
+| Nome | RM |
+|---|---|
+| Ali Andrea Mamani Molle | 558052 |
+| Guilherme Linard F.R Gozzi | 555768 |
+| Lucas Vasquez Silva | 555159 |
 
 ## Índice
 
@@ -109,7 +116,7 @@ src/main/resources/
 
 - Java 17+
 - Maven 3.8+
-- MySQL Workbench (recomendado)
+- MySQL Workbench
   
 ---
 
