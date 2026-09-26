@@ -1,8 +1,9 @@
 # AutoInsight API — Arquitetura Orientada a Serviços
 
-> Projeto desenvolvido para o Challenge Ford FIAP 2026 — Inteligência Competitiva Automotiva
+> Projeto desenvolvido para o Challenge Ford FIAP 2026 — Inteligência Competitiva Automotiva.
 
 ---
+
 ## Equipe
 
 | Nome | RM |
@@ -13,32 +14,101 @@
 
 ## Índice
 
-- [Visão Geral](#visão-geral)
-- [Arquitetura](#arquitetura)
+- [Visão geral](#visão-geral)
+- [Arquitetura da solução](#arquitetura-da-solução)
+- [Autenticação e autorização](#autenticação-e-autorização)
 - [Tecnologias](#tecnologias)
-- [Estrutura do Projeto](#estrutura-do-projeto)
+- [Estrutura do projeto](#estrutura-do-projeto)
 - [Pré-requisitos](#pré-requisitos)
-- [Configuração do Banco de Dados (MySQL Workbench)](#configuração-do-banco-de-dados)
-- [Variáveis de Ambiente](#variáveis-de-ambiente)
-- [Como Rodar](#como-rodar)
+- [Configuração do banco de dados](#configuração-do-banco-de-dados)
+- [Variáveis de ambiente](#variáveis-de-ambiente)
+- [Como rodar](#como-rodar)
 - [Endpoints da API](#endpoints-da-api)
+- [Respostas HTTP](#respostas-http)
+- [Testes automatizados](#testes-automatizados)
+- [Evidências da execuçãos](#evidências-da-execução)
 - [Documentação Swagger](#documentação-swagger)
 
 ---
 
-## Visão Geral
+## Visão geral
 
-A **AutoInsight API** é uma API RESTful desenvolvida em **Spring Boot** que centraliza o processamento de dados de inteligência competitiva automotiva. Ela recebe requisições do app mobile, autentica usuários via JWT, consulta especificações técnicas de veículos e armazena o histórico de buscas de forma criptografada.
+A **AutoInsight API** é uma API REST desenvolvida em **Spring Boot** para consultar e gerenciar informações de inteligência competitiva automotiva. O aplicativo mobile consome a API para pesquisar veículos e suas especificações técnicas.
+
+A solução oferece autenticação por JWT, permissões para os perfis `ANALYST` e `ADMIN`, histórico de buscas, limitação de requisições e logs de auditoria.
 
 ---
 
-## Arquitetura
+## Arquitetura da solução
 
-O projeto segue o padrão **SOA (Arquitetura Orientada a Serviços e Web Services)**, com separação clara entre camadas independentes e reutilizáveis.
+```mermaid
+flowchart TD
+    U["Usuário"] --> APP["Aplicativo AutoInsight"]
+    APP --> API["API REST Spring Boot"]
+    API --> SEC["Spring Security e filtros"]
+    SEC --> CTRL["Controllers"]
+    CTRL --> SVC["Services"]
+    SVC --> REPO["Repositories"]
+    REPO --> DB[("MySQL")]
+    API --> DOC["Swagger / OpenAPI"]
+```
 
-<img width="406" height="1531" alt="Image" src="https://github.com/user-attachments/assets/514b6dc9-a429-4570-a278-96c1fbc29bba" />
+| Componente | Responsabilidade |
+|---|---|
+| Aplicativo AutoInsight | Enviar requisições e apresentar os resultados ao usuário |
+| Controllers | Receber requisições HTTP e devolver respostas |
+| Services | Executar as regras de negócio |
+| Repositories | Acessar os dados persistidos |
+| MySQL | Armazenar veículos, especificações, histórico e auditoria |
+| Spring Security e filtros | Validar tokens, aplicar permissões, limitar requisições e registrar acessos |
+| Swagger / OpenAPI | Disponibilizar a documentação interativa da API |
 
-> **Nota:** A camada de **Security** foi desenvolvida em conjunto com os requisitos da disciplina de **Cybersecurity**, incluindo autenticação JWT, controle de acesso por papéis (RBAC), rate limiting, criptografia AES/GCM e trilha de auditoria.
+A camada de segurança também atende a requisitos da disciplina de **Cybersecurity**, incluindo JWT, controle de acesso por perfis, rate limiting, criptografia AES/GCM e auditoria.
+
+### Fluxo de comunicação e autenticação
+
+```mermaid
+sequenceDiagram
+    participant App as Aplicativo
+    participant API as API REST
+    participant JWT as JwtFilter
+    participant Acesso as SecurityConfig
+    participant Dados as Services e MySQL
+
+    App->>API: POST /api/auth/login
+    API-->>App: 200 + JWT
+    App->>API: GET /api/vehicles + Bearer JWT
+    API->>JWT: Validar token
+    JWT->>Acesso: Informar usuário e perfil
+    Acesso->>Dados: Autorizar consulta
+    Dados-->>App: 200 + veículos
+```
+
+No login, a API verifica as credenciais e gera um JWT com usuário, perfil e prazo de expiração. Nas chamadas protegidas, o cliente envia:
+
+```http
+Authorization: Bearer <token>
+```
+
+O `JwtFilter` valida o token. O `SecurityConfig` verifica se o perfil tem permissão para executar a operação. Uma requisição sem autenticação a um recurso protegido retorna `401`; um usuário autenticado sem permissão recebe `403`.
+
+---
+
+## Autenticação e autorização
+
+O endpoint `POST /api/auth/login` é público. Os demais recursos têm acesso controlado por perfil.
+
+| Operação | ANALYST | ADMIN |
+|---|---:|---:|
+| Consultar veículos | Sim | Sim |
+| Cadastrar, atualizar e excluir veículos | Não | Sim |
+| Consultar histórico | Sim | Sim |
+| Excluir histórico | Não | Sim |
+| Consultar logs de auditoria | Não | Sim |
+
+O JWT é assinado pela API. Sua assinatura e expiração são verificadas nas requisições protegidas. O prazo padrão configurado em desenvolvimento é de **24 horas**.
+
+> As contas de exemplo apresentadas neste README são para executar o projeto em ambiente de desenvolvimento.
 
 ---
 
@@ -48,132 +118,141 @@ O projeto segue o padrão **SOA (Arquitetura Orientada a Serviços e Web Service
 |---|---|---|
 | Java | 17 | Linguagem principal |
 | Spring Boot | 3.5.14 | Framework da API |
-| Spring Security | - | Gerenciado pelo Spring Boot |
-| Spring Data JPA | - | Gerenciado pelo Spring Boot |
-| MySQL Connector | - | Gerenciado pelo Spring Boot |
+| Spring Security | Gerenciada pelo Spring Boot | Autenticação e autorização |
+| Spring Data JPA | Gerenciada pelo Spring Boot | Persistência de dados |
 | MySQL | 8.0 | Banco de dados relacional |
-| Flyway | - | Gerenciado pelo Spring Boot |
-| JWT (JJWT) | 0.12.6 | Tokens de autenticação |
-| Bucket4j | 7.6.0 | Rate limiting |
+| Flyway | Gerenciada pelo Spring Boot | Migrações do banco |
+| JJWT | 0.12.6 | Geração e validação de JWT |
+| Bucket4j | 7.6.0 | Limitação de requisições |
 | Springdoc OpenAPI | 2.8.8 | Documentação Swagger |
-| Lombok | - | Gerenciado pelo Spring Boot |
+| Lombok | Gerenciada pelo Spring Boot | Redução de código repetitivo |
+| JUnit e Mockito | Dependências de teste do Spring Boot | Testes automatizados |
 
 ---
 
-## Estrutura do Projeto
+## Estrutura do projeto
 
-```
+```text
 src/main/java/com/autoinsight/autoinsight_api/
 ├── config/
-│   ├── SecurityConfig.java       # Configuração do Spring Security
-│   └── SwaggerConfig.java        # Configuração do Swagger e CORS
+│   ├── SecurityConfig.java
+│   └── SwaggerConfig.java
 ├── controller/
-│   ├── AuthController.java       # Login e geração de token JWT
-│   ├── VehicleController.java    # CRUD de veículos e busca
-│   ├── SearchHistoryController.java  # Histórico de buscas
-│   └── AuditLogController.java   # Logs de auditoria (admin only)
+│   ├── AuthController.java
+│   ├── VehicleController.java
+│   ├── SearchHistoryController.java
+│   └── AuditLogController.java
 ├── dto/
-│   ├── ApiResponseDTO.java       # Resposta padrão da API
-│   ├── LoginRequestDTO.java      # Dados de login
-│   ├── LoginResponseDTO.java     # Token e dados do usuário
-│   ├── VehicleRequestDTO.java    # Criação/edição de veículo
-│   ├── VehicleResponseDTO.java   # Retorno de veículo
+│   ├── ApiResponseDTO.java
+│   ├── LoginRequestDTO.java
+│   ├── LoginResponseDTO.java
+│   ├── VehicleRequestDTO.java
+│   ├── VehicleResponseDTO.java
 │   ├── SpecificationRequestDTO.java
 │   ├── SpecificationResponseDTO.java
 │   └── SearchHistoryResponseDTO.java
 ├── exception/
-│   └── GlobalExceptionHandler.java  # Tratamento centralizado de erros
+│   └── GlobalExceptionHandler.java
 ├── model/
-│   ├── Vehicle.java              # Entidade veículo
-│   ├── Specification.java        # Entidade especificação técnica
-│   ├── SearchHistory.java        # Entidade histórico de buscas
-│   └── AuditLog.java             # Entidade log de auditoria
+│   ├── Vehicle.java
+│   ├── Specification.java
+│   ├── SearchHistory.java
+│   └── AuditLog.java
 ├── repository/
 │   ├── VehicleRepository.java
 │   ├── SpecificationRepository.java
 │   ├── SearchHistoryRepository.java
 │   └── AuditLogRepository.java
 ├── security/
-│   ├── JwtUtil.java              # Geração e validação de tokens JWT
-│   ├── JwtFilter.java            # Filtro de autenticação por token
-│   ├── RateLimitFilter.java      # Limite de requisições por IP
-│   ├── AuditLogFilter.java       # Registro de todos os requests
-│   └── CryptoUtils.java          # Criptografia AES/GCM
+│   ├── JwtUtil.java
+│   ├── JwtFilter.java
+│   ├── RateLimitFilter.java
+│   ├── AuditLogFilter.java
+│   └── CryptoUtils.java
 └── service/
-    ├── VehicleService.java       # Lógica de negócio de veículos
-    └── SearchHistoryService.java # Lógica de histórico com criptografia
+    ├── VehicleService.java
+    └── SearchHistoryService.java
 
 src/main/resources/
-├── application.properties        # Configurações da aplicação
+├── application.properties
 └── db/migration/
-    ├── V1__create_tables.sql     # Criação das tabelas principais
-    └── V2__create_audit_logs.sql # Criação da tabela de auditoria
+    ├── V1__create_tables.sql
+    └── V2__create_audit_logs.sql
+
+src/test/java/com/autoinsight/autoinsight_api/
+├── controller/
+│   ├── AuthControllerTest.java
+│   └── VehicleSecurityTest.java
+├── security/
+│   ├── JwtFilterTest.java
+│   └── JwtUtilTest.java
+└── service/
+    └── VehicleServiceTest.java
 ```
 
 ---
 
 ## Pré-requisitos
 
-- Java 17+
-- Maven 3.8+
-- MySQL Workbench
-  
+- Java 17 ou superior;
+- MySQL Server;
+- Maven ou o Maven Wrapper incluído no projeto;
+- MySQL Workbench, opcional para administrar o banco.
+
 ---
 
-## Configuração do Banco de Dados
+## Configuração do banco de dados
 
-### 1. Instalar o MySQL
+### 1. Instalar e iniciar o MySQL
 
-Baixe e instale o MySQL Community Server em: https://dev.mysql.com/downloads/mysql/
+Instale o MySQL Community Server e defina a senha do usuário que será utilizado pela aplicação.
 
-Durante a instalação, defina uma senha para o usuário `root`. Guarde essa senha.
+O MySQL Workbench pode ser usado para criar e consultar o banco, mas não substitui o MySQL Server.
 
-### 2. Instalar o MySQL Workbench
+### 2. Criar o banco
 
-Baixe em: https://dev.mysql.com/downloads/workbench/
-
-### 3. Conectar ao banco
-
-1. Abra o MySQL Workbench
-2. Clique em **+** ao lado de "MySQL Connections"
-3. Preencha:
-   - Connection Name: `autoinsight`
-   - Hostname: `127.0.0.1`
-   - Port: `3306`
-   - Username: `root`
-4. Clique em **Test Connection** e insira sua senha
-5. Clique em **OK**
-
-### 4. Criar o banco de dados
-
-No MySQL Workbench, abra uma nova query e execute:
+No MySQL Workbench, execute:
 
 ```sql
 CREATE DATABASE autoinsight_db;
 ```
 
-> O Flyway criará as tabelas automaticamente ao subir a aplicação.
+A URL de conexão da aplicação também contém `createDatabaseIfNotExist=true`. Assim, o banco pode ser criado durante a conexão, desde que o usuário do MySQL tenha permissão. Criá-lo manualmente antes de iniciar a API facilita a conferência da configuração.
+
+O Flyway executa as migrações para criar as tabelas quando a aplicação inicia.
 
 ---
 
-## Variáveis de Ambiente
+## Variáveis de ambiente
 
-A aplicação usa variáveis de ambiente para proteger credenciais sensíveis. Configure as seguintes antes de rodar:
+O arquivo `src/main/resources/application.properties` lê as seguintes variáveis:
 
-| Variável | Descrição | Padrão (dev) |
+| Variável | Finalidade | Padrão de desenvolvimento |
 |---|---|---|
-| `DB_URL` | URL do banco de dados | `jdbc:mysql://localhost:3306/autoinsight_db` |
 | `DB_USERNAME` | Usuário do MySQL | `root` |
 | `DB_PASSWORD` | Senha do MySQL | `root123` |
-| `JWT_SECRET` | Chave secreta do JWT | definida no properties |
-| `CRYPTO_KEY` | Chave AES de criptografia | definida no properties |
-| `CORS_ALLOWED_ORIGINS` | Origens permitidas no CORS | `http://localhost:3000,http://localhost:8080` |
+| `JWT_SECRET` | Chave de assinatura do JWT | Valor definido no `application.properties` |
+| `JWT_EXPIRATION` | Validade do JWT em milissegundos | `86400000` (24 horas) |
+| `CRYPTO_KEY` | Chave de criptografia AES/GCM | Valor definido no `application.properties` |
+| `CORS_ALLOWED_ORIGINS` | Origens permitidas no acesso pelo navegador | `http://localhost:3000,http://localhost:8080,http://localhost:8081` |
 
-> Em desenvolvimento local, os valores padrão do `application.properties` são usados automaticamente.
+A URL do banco está configurada diretamente no `application.properties`:
+
+```text
+jdbc:mysql://localhost:3306/autoinsight_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
+```
+
+No Windows PowerShell, um exemplo de configuração da senha do banco para a sessão atual é:
+
+```powershell
+$env:DB_PASSWORD="SUA_SENHA_DO_MYSQL"
+```
+
+Os valores padrão de `JWT_SECRET` e `CRYPTO_KEY` facilitam a execução local. Em outro ambiente, defina chaves próprias por variáveis de ambiente e não use os valores padrão de desenvolvimento.
 
 ---
 
-## Como Rodar
+## Como rodar
 
 ### 1. Clonar o repositório
 
@@ -182,22 +261,33 @@ git clone https://github.com/AliAndrea1/Sprint-Soa-Ford.git
 cd Sprint-Soa-Ford
 ```
 
-### 2. Configurar o banco
+### 2. Preparar o banco
 
-Certifique-se de que o MySQL está rodando e o banco `autoinsight_db` foi criado.
+Inicie o MySQL e configure `DB_USERNAME` e `DB_PASSWORD`, se os valores padrão do projeto não corresponderem à sua instalação.
 
-Se necessário, edite as credenciais em `src/main/resources/application.properties`:
+### 3. Iniciar a API
 
-```properties
-spring.datasource.username=${DB_USERNAME:root}
-spring.datasource.password=${DB_PASSWORD:SUA_SENHA}
+No Windows, usando o Maven Wrapper:
+
+```powershell
+.\mvnw.cmd spring-boot:run
 ```
 
-### 3. Rodar a aplicação
+Se o Maven estiver instalado e configurado:
 
 ```bash
 mvn spring-boot:run
 ```
+
+Por padrão, a API fica disponível em:
+
+```text
+http://localhost:8080
+```
+
+Para acesso pelo celular, o aplicativo deve apontar para o IP do computador na rede local. Celular e computador devem estar na mesma rede.
+
+---
 
 ## Endpoints da API
 
@@ -205,72 +295,129 @@ mvn spring-boot:run
 
 | Método | Endpoint | Descrição | Acesso |
 |---|---|---|---|
-| POST | `/api/auth/login` | Realiza login e retorna token JWT | Público |
+| POST | `/api/auth/login` | Autentica e retorna um JWT | Público |
 
-**Exemplo de login:**
+**Exemplo de corpo da requisição:**
+
 ```json
-POST /api/auth/login
 {
-  "username": "admin",
-  "password": "admin123"
+  "username": "analyst",
+  "password": "analyst123"
 }
 ```
 
-**Usuários disponíveis:**
-| Usuário | Senha | Papel |
-|---|---|---|
-| admin | admin123 | ADMIN |
-| analyst | analyst123 | ANALYST |
+**Contas disponíveis na configuração de desenvolvimento:**
 
----
+| Usuário | Senha | Perfil |
+|---|---|---|
+| `admin` | `admin123` | `ADMIN` |
+| `analyst` | `analyst123` | `ANALYST` |
 
 ### Veículos
 
 | Método | Endpoint | Descrição | Acesso |
 |---|---|---|---|
-| GET | `/api/vehicles` | Lista todos os veículos | ADMIN, ANALYST |
+| GET | `/api/vehicles` | Lista veículos | ADMIN, ANALYST |
 | GET | `/api/vehicles/{id}` | Busca veículo por ID | ADMIN, ANALYST |
-| GET | `/api/vehicles/search` | Busca por marca/modelo/versão | ADMIN, ANALYST |
-| GET | `/api/vehicles/brand/{brand}` | Lista por marca | ADMIN, ANALYST |
-| POST | `/api/vehicles` | Cadastra novo veículo | ADMIN |
+| GET | `/api/vehicles/search` | Busca veículo e permite selecionar atributos | ADMIN, ANALYST |
+| GET | `/api/vehicles/brand/{brand}` | Lista veículos por marca | ADMIN, ANALYST |
+| POST | `/api/vehicles` | Cadastra veículo | ADMIN |
 | PUT | `/api/vehicles/{id}` | Atualiza veículo | ADMIN |
-| DELETE | `/api/vehicles/{id}` | Remove veículo | ADMIN |
+| DELETE | `/api/vehicles/{id}` | Exclui veículo | ADMIN |
 
-**Exemplo de busca:**
+**Exemplo de busca completa:**
+
+```text
+GET /api/vehicles/search?brand=Ford&model=RANGER&version=XLT%203.0L%20V6%20AT
 ```
-GET /api/vehicles/search?brand=Ford&model=Ranger&version=Raptor
+
+**Exemplo solicitando somente alguns atributos:**
+
+```text
+GET /api/vehicles/search?brand=Ford&model=RANGER&version=XLT%203.0L%20V6%20AT&attributes=Potência&attributes=Torque
 ```
 
----
+Quando um atributo solicitado não está cadastrado para o veículo, a busca retorna `"Não disponível"` para esse atributo.
 
-### Histórico de Buscas
+### Histórico de buscas
 
 | Método | Endpoint | Descrição | Acesso |
 |---|---|---|---|
-| GET | `/api/history` | Lista histórico do usuário | ADMIN, ANALYST |
-| DELETE | `/api/history/{id}` | Remove registro do histórico | ADMIN |
-
----
+| GET | `/api/history` | Consulta o histórico | ADMIN, ANALYST |
+| DELETE | `/api/history/{id}` | Exclui um registro do histórico | ADMIN |
 
 ### Auditoria
 
 | Método | Endpoint | Descrição | Acesso |
 |---|---|---|---|
-| GET | `/api/audit` | Lista todos os logs | ADMIN |
-| GET | `/api/audit/user/{username}` | Logs por usuário | ADMIN |
+| GET | `/api/audit` | Lista os logs de auditoria | ADMIN |
+| GET | `/api/audit/user/{username}` | Consulta logs por usuário | ADMIN |
 
+---
+
+## Respostas HTTP
+
+| Status | Situação |
+|---|---|
+| `200 OK` | Consulta ou atualização concluída |
+| `201 Created` | Veículo cadastrado |
+| `400 Bad Request` | Requisição com dados inválidos |
+| `401 Unauthorized` | Recurso protegido acessado sem autenticação ou login com credenciais inválidas |
+| `403 Forbidden` | Usuário autenticado sem permissão |
+| `404 Not Found` | Recurso não encontrado |
+| `429 Too Many Requests` | Limite de requisições excedido |
+
+Os controllers utilizam `ApiResponseDTO` para as respostas da aplicação, com os campos `success`, `message` e `data`. Respostas produzidas diretamente pelo Spring Security podem vir sem corpo.
+
+---
+
+## Testes automatizados
+
+Os testes implementados verificam:
+
+- Seleção de especificações existentes e ausentes;
+- Geração, conteúdo, assinatura e expiração do JWT;
+- Comportamento do `JwtFilter` com token válido, token inválido e sem token;
+- Login com credenciais corretas e incorretas;
+- Acesso aos veículos sem token, consulta permitida para `ANALYST` e cadastro proibido para `ANALYST`.
+
+Para executar as cinco classes verificadas nesta sprint, na raiz do projeto:
+
+```powershell
+.\mvnw.cmd "-Dtest=VehicleServiceTest,JwtFilterTest,JwtUtilTest,AuthControllerTest,VehicleSecurityTest" test
+```
+
+Essas cinco classes somaram **14 testes aprovados, sem falhas**, nas execuções realizadas durante a Sprint 3. Os testes usam dados e serviços simulados; não dependem de uma conexão com o MySQL.
+
+> Ao executar todos os testes do projeto com `.\mvnw.cmd test`, algum teste de inicialização do contexto Spring já existente pode precisar do MySQL configurado e em execução.
+
+### Evidências da execução
+
+| Teste | Evidência |
+|---|---|
+| Seleção de especificações | [VehicleServiceTest](docs/evidencias/testes/vehicle-service.jpg) |
+| Filtro JWT | [JwtFilterTest](docs/evidencias/testes/jwt-filter.jpg) |
+| Geração e validação do JWT | [JwtUtilTest](docs/evidencias/testes/jwt-util.jpg) |
+| Login | [AuthControllerTest](docs/evidencias/testes/auth-controller.jpg) |
+| Autorização dos veículos | [VehicleSecurityTest](docs/evidencias/testes/vehicle-security.jpg) |
 ---
 
 ## Documentação Swagger
 
-Com a aplicação rodando, acesse a documentação interativa:
+Com a API em execução, acesse:
 
-```
-http://localhost:8080/swagger-ui.html
+```text
+http://localhost:8080/swagger-ui/index.html
 ```
 
-Para testar endpoints protegidos no Swagger:
-1. Faça login em `POST /api/auth/login`
-2. Copie o token retornado
-3. Clique em **Authorize** (🔒) no topo da página
-4. Cole o token e clique em **Authorize**
+O projeto também configura o caminho `/swagger-ui.html`.
+
+Para testar um endpoint protegido:
+
+1. Execute `POST /api/auth/login`;
+2. Copie o token retornado;
+3. Clique em **Authorize** no Swagger;
+4. Cole o token no campo de autenticação;
+5. Execute o endpoint desejado.
+
+Não inclua tokens em capturas de tela ou arquivos de evidência.
