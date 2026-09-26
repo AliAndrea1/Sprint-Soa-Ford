@@ -74,6 +74,7 @@ public class VehicleService {
                             .unit(specDTO.getUnit())
                             .build())
                     .collect(Collectors.toList());
+
             specificationRepository.saveAll(specs);
             saved.setSpecifications(specs);
         }
@@ -93,6 +94,7 @@ public class VehicleService {
 
         if (dto.getSpecifications() != null) {
             specificationRepository.deleteByVehicleId(id);
+
             List<Specification> specs = dto.getSpecifications().stream()
                     .map(specDTO -> Specification.builder()
                             .vehicle(vehicle)
@@ -102,6 +104,7 @@ public class VehicleService {
                             .unit(specDTO.getUnit())
                             .build())
                     .collect(Collectors.toList());
+
             specificationRepository.saveAll(specs);
             vehicle.setSpecifications(specs);
         }
@@ -115,6 +118,24 @@ public class VehicleService {
             throw new RuntimeException("Veículo não encontrado com id: " + id);
         }
         vehicleRepository.deleteById(id);
+    }
+
+    public List<SpecificationResponseDTO> selectSpecifications(
+            List<SpecificationResponseDTO> available,
+            List<String> requested) {
+
+        return requested.stream()
+                .filter(name -> name != null && !name.isBlank())
+                .map(String::trim)
+                .distinct()
+                .map(name -> available.stream()
+                        .filter(spec -> spec.getAttributeName().equalsIgnoreCase(name))
+                        .findFirst()
+                        .orElseGet(() -> SpecificationResponseDTO.builder()
+                                .attributeName(name)
+                                .attributeValue("Não disponível")
+                                .build()))
+                .toList();
     }
 
     private VehicleResponseDTO toResponseDTO(Vehicle vehicle) {

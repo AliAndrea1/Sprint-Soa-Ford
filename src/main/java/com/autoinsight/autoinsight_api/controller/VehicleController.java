@@ -41,19 +41,26 @@ public class VehicleController {
     }
 
     @GetMapping("/search")
-    @Operation(summary = "Buscar veículo por marca, modelo e versão")
+    @Operation(summary = "Buscar veículo por marca, modelo, versão e atributos")
     public ResponseEntity<ApiResponseDTO<VehicleResponseDTO>> search(
-            @RequestParam @Size(max = 100, message = "Marca deve ter no máximo 100 caracteres") String brand,
-            @RequestParam @Size(max = 100, message = "Modelo deve ter no máximo 100 caracteres") String model,
-            @RequestParam @Size(max = 100, message = "Versão deve ter no máximo 100 caracteres") String version) {
+            @RequestParam @Size(max = 100) String brand,
+            @RequestParam @Size(max = 100) String model,
+            @RequestParam @Size(max = 100) String version,
+            @RequestParam(required = false) List<String> attributes) {
+
+        VehicleResponseDTO result = vehicleService
+                .findByBrandModelVersion(brand, model, version);
+
+        if (attributes != null && !attributes.isEmpty()) {
+            result.setSpecifications(
+                    vehicleService.selectSpecifications(result.getSpecifications(), attributes)
+            );
+        }
 
         searchHistoryService.save(brand, model, version);
 
         return ResponseEntity.ok(
-                ApiResponseDTO.success(
-                        vehicleService.findByBrandModelVersion(brand, model, version),
-                        "Veículo encontrado com sucesso"
-                )
+                ApiResponseDTO.success(result, "Veículo encontrado com sucesso")
         );
     }
 
