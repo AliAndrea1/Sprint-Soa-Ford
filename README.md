@@ -417,10 +417,9 @@ As sete classes somaram **19 testes aprovados, sem falhas** na execução local 
 | Login | [AuthControllerTest](docs/evidencias/testes/auth-controller.JPG) |
 | Autorização dos veículos | [VehicleSecurityTest](docs/evidencias/testes/vehicle-security.JPG) |
 | Erros 404 e 409 | [VehicleErrorTest](docs/evidencias/testes/vehicle-error.JPG) |
-| Execução anterior — 16 testes | [Resultado geral](docs/evidencias/testes/todos-os-testes.JPG) |
 | Execução completa — 19 testes | [Resultado geral](docs/evidencias/testes/todos-os-testes.JPG) |
 | Criptografia do histórico | [CryptoUtilsTest aprovado](docs/evidencias/testes/crypto-utils.JPG) |
-| Pipeline de segurança | [GitHub Actions — execução anterior aprovada](https://github.com/AliAndrea1/Sprint-Soa-Ford/actions/runs/36296251088); conferir execução do novo commit |
+| Pipeline de segurança | [Execuções do GitHub Actions](https://github.com/AliAndrea1/Sprint-Soa-Ford/actions/workflows/security.yml) |
 
 ---
 
