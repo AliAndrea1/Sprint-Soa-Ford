@@ -401,6 +401,7 @@ Essas cinco classes somaram **14 testes aprovados, sem falhas**, nas execuções
 | Login | [AuthControllerTest](docs/evidencias/testes/auth-controller.JPG) |
 | Autorização dos veículos | [VehicleSecurityTest](docs/evidencias/testes/vehicle-security.JPG) |
 | Erros 404 e 409 | [VehicleErrorTest](docs/evidencias/testes/vehicle-error.JPG) |
+| Execução completa — 16 testes | [Resultado geral](docs/evidencias/testes/todos-os-testes.JPG) |
 
 ## Documentação Swagger
 
