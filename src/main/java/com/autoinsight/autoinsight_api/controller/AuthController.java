@@ -5,37 +5,40 @@ import com.autoinsight.autoinsight_api.security.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
 @RestController
 @RequestMapping("/api/auth")
-@RequiredArgsConstructor
 @Tag(name = "Autenticação", description = "Endpoints de autenticação e geração de token JWT")
 public class AuthController {
 
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
 
-    private static final Map<String, String[]> USERS = new HashMap<>();
+    private final Map<String, String[]> users;
 
-    @jakarta.annotation.PostConstruct
-    public void init() {
-        USERS.put("admin", new String[]{
-                passwordEncoder.encode("admin123"),
-                "ADMIN"
-        });
-        USERS.put("analyst", new String[]{
-                passwordEncoder.encode("analyst123"),
-                "ANALYST"
-        });
+    public AuthController(JwtUtil jwtUtil, PasswordEncoder passwordEncoder,
+                          @Value("${app.auth.admin-password}") String adminPassword,
+                          @Value("${app.auth.analyst-password}") String analystPassword) {
+        this.jwtUtil = jwtUtil;
+        this.passwordEncoder = passwordEncoder;
+        this.users = Map.of(
+                "admin", new String[]{
+                        passwordEncoder.encode(adminPassword),
+                        "ADMIN"
+                },
+                "analyst", new String[]{
+                        passwordEncoder.encode(analystPassword),
+                        "ANALYST"
+                }
+        );
     }
 
     @PostMapping("/login")
@@ -43,7 +46,7 @@ public class AuthController {
     public ResponseEntity<ApiResponseDTO<LoginResponseDTO>> login(
             @Valid @RequestBody LoginRequestDTO dto) {
 
-        String[] userInfo = USERS.get(dto.getUsername());
+        String[] userInfo = users.get(dto.getUsername());
 
         if (userInfo == null || !passwordEncoder.matches(dto.getPassword(), userInfo[0])) {
             log.warn("[AUTH] Tentativa de login falha para usuário: {}", dto.getUsername());
@@ -68,3 +71,4 @@ public class AuthController {
         );
     }
 }
+

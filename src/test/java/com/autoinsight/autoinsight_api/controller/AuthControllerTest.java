@@ -27,10 +27,11 @@ class AuthControllerTest {
 
         AuthController controller = new AuthController(
                 jwtUtil,
-                new BCryptPasswordEncoder()
+                new BCryptPasswordEncoder(),
+                "senha-admin-de-teste",
+                "senha-analyst-de-teste"
         );
 
-        controller.init();
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
@@ -41,7 +42,7 @@ class AuthControllerTest {
                         .content("""
                                 {
                                   "username": "analyst",
-                                  "password": "analyst123"
+                                  "password": "senha-analyst-de-teste"
                                 }
                                 """))
                 .andExpect(status().isOk())
@@ -68,3 +69,4 @@ class AuthControllerTest {
                         .value("Usuário ou senha inválidos"));
     }
 }
+

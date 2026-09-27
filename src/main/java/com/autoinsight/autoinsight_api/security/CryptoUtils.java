@@ -43,7 +43,7 @@ public class CryptoUtils {
             return Base64.getEncoder().encodeToString(combined);
         } catch (Exception e) {
             log.error("[CRYPTO] Erro ao criptografar valor");
-            return value;
+            throw new IllegalStateException("Falha ao criptografar histórico", e);
         }
     }
 
@@ -63,7 +63,7 @@ public class CryptoUtils {
             return new String(cipher.doFinal(ciphertext));
         } catch (Exception e) {
             log.error("[CRYPTO] Erro ao descriptografar valor");
-            return value;
+            throw new IllegalStateException("Falha ao descriptografar histórico", e);
         }
     }
 }
