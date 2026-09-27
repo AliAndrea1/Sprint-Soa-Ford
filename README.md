@@ -110,7 +110,7 @@ O endpoint `POST /api/auth/login` é público. Os demais recursos têm acesso co
 
 O JWT é assinado pela API. Sua assinatura e expiração são verificadas nas requisições protegidas. O prazo padrão configurado em desenvolvimento é de **24 horas**.
 
-> As contas de exemplo apresentadas neste README são para executar o projeto em ambiente de desenvolvimento.
+> Os nomes de usuário são `admin` e `analyst`. As senhas são configuradas pelo responsável pelo ambiente e não são publicadas no repositório.
 
 ---
 
@@ -190,7 +190,8 @@ src/test/java/com/autoinsight/autoinsight_api/
 │   └── VehicleSecurityTest.java
 ├── security/
 │   ├── JwtFilterTest.java
-│   └── JwtUtilTest.java
+│   ├── JwtUtilTest.java
+│   └── CryptoUtilsTest.java
 └── service/
     └── VehicleServiceTest.java
 ```
@@ -236,22 +237,28 @@ O arquivo `src/main/resources/application.properties` lê as seguintes variávei
 |---|---|---|
 | `DB_URL` | Endereço JDBC do MySQL | `jdbc:mysql://localhost:3306/autoinsight_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC` |
 | `DB_USERNAME` | Usuário do MySQL | `root` |
-| `DB_PASSWORD` | Senha do MySQL | `root123` |
-| `JWT_SECRET` | Chave de assinatura do JWT | Valor definido no `application.properties` |
+| `DB_PASSWORD` | Senha do MySQL | Obrigatória |
+| `JWT_SECRET` | Chave de assinatura do JWT | Obrigatória; configure chave forte |
 | `JWT_EXPIRATION` | Validade do JWT em milissegundos | `86400000` (24 horas) |
-| `CRYPTO_KEY` | Chave de criptografia AES/GCM | Valor definido no `application.properties` |
+| `CRYPTO_KEY` | Chave de criptografia AES/GCM | Obrigatória; chave AES de 16, 24 ou 32 bytes |
+| `ADMIN_PASSWORD` | Senha do usuário `admin` | Obrigatória |
+| `ANALYST_PASSWORD` | Senha do usuário `analyst` | Obrigatória |
 | `CORS_ALLOWED_ORIGINS` | Origens permitidas no acesso pelo navegador | `http://localhost:3000,http://localhost:8080,http://localhost:8081` |
 | `SERVER_FORWARD_HEADERS_STRATEGY` | Reconhecer o HTTPS encaminhado pelo proxy | Não necessária na execução local; no Railway, `framework` |
 
 Para uso local, a API se conecta ao MySQL em `localhost:3306/autoinsight_db`. No Railway, `DB_URL`, `DB_USERNAME` e `DB_PASSWORD` apontam para o serviço MySQL do mesmo projeto pela rede interna. Os valores das senhas e das chaves não devem ser publicados no GitHub.
 
-No Windows PowerShell, um exemplo de configuração da senha do banco para a sessão atual é:
+No Windows PowerShell, configure as variáveis para a sessão atual antes de iniciar a API. Substitua os exemplos por valores próprios; não publique os valores:
 
 ```powershell
 $env:DB_PASSWORD="SUA_SENHA_DO_MYSQL"
+$env:JWT_SECRET="SUA_CHAVE_ALEATORIA_COM_PELO_MENOS_48_BYTES"
+$env:CRYPTO_KEY="SUA_CHAVE_AES_DE_16_24_OU_32_BYTES"
+$env:ADMIN_PASSWORD="SUA_SENHA_ADMIN"
+$env:ANALYST_PASSWORD="SUA_SENHA_ANALYST"
 ```
 
-Os valores padrão de `JWT_SECRET` e `CRYPTO_KEY` facilitam a execução local. Em outro ambiente, defina chaves próprias por variáveis de ambiente e não use os valores padrão de desenvolvimento.
+Em ambientes que já tenham histórico criptografado, mantenha `CRYPTO_KEY` compatível com os dados antigos até planejar sua migração. Trocar a chave sem migrar os registros impede a leitura do histórico. A troca de `JWT_SECRET` invalida os tokens previamente emitidos.
 
 ---
 
@@ -266,7 +273,7 @@ cd Sprint-Soa-Ford
 
 ### 2. Preparar o banco
 
-Inicie o MySQL e configure `DB_USERNAME` e `DB_PASSWORD`, se os valores padrão do projeto não corresponderem à sua instalação.
+Inicie o MySQL e configure `DB_PASSWORD`, `JWT_SECRET`, `CRYPTO_KEY`, `ADMIN_PASSWORD` e `ANALYST_PASSWORD` conforme a seção anterior. Ajuste `DB_USERNAME` se necessário.
 
 ### 3. Iniciar a API
 
@@ -305,16 +312,18 @@ Na versão publicada, o APK usa a URL HTTPS da API no Railway. Para executar a A
 ```json
 {
   "username": "analyst",
-  "password": "analyst123"
+  "password": "<senha configurada em ANALYST_PASSWORD>"
 }
 ```
 
-**Contas disponíveis na configuração de desenvolvimento:**
+**Contas configuradas pelo responsável pelo ambiente:**
 
-| Usuário | Senha | Perfil |
+| Usuário | Perfil | Origem da senha |
 |---|---|---|
-| `admin` | `admin123` | `ADMIN` |
-| `analyst` | `analyst123` | `ANALYST` |
+| `admin` | `ADMIN` | Variável `ADMIN_PASSWORD` |
+| `analyst` | `ANALYST` | Variável `ANALYST_PASSWORD` |
+
+Para obter acesso de demonstração, solicite as credenciais ao responsável pelo projeto. Não inclua senhas no README nem em capturas de tela.
 
 ### Veículos
 
@@ -385,15 +394,16 @@ Os testes implementados verificam:
 - Comportamento do `JwtFilter` com token válido, token inválido e sem token;
 - Login com credenciais corretas e incorretas;
 - Acesso aos veículos sem token, consulta permitida para `ANALYST` e cadastro proibido para `ANALYST`;
-- Respostas `404` para veículo inexistente e `409` para veículo já cadastrado.
+- Respostas `404` para veículo inexistente e `409` para veículo já cadastrado;
+- Criptografia e descriptografia do histórico; falhas de criptografia não devolvem dados em texto aberto.
 
-Para executar as seis classes verificadas nesta sprint, na raiz do projeto:
+Para executar as sete classes verificadas nesta sprint, na raiz do projeto:
 
 ```powershell
-.\mvnw.cmd "-Dtest=VehicleServiceTest,JwtFilterTest,JwtUtilTest,AuthControllerTest,VehicleSecurityTest,VehicleErrorTest" test
+.\mvnw.cmd "-Dtest=VehicleServiceTest,JwtFilterTest,JwtUtilTest,AuthControllerTest,VehicleSecurityTest,VehicleErrorTest,CryptoUtilsTest" test
 ```
 
-As seis classes somaram **16 testes aprovados, sem falhas** na execução realizada durante a Sprint 3. Os testes usam dados e serviços simulados e não dependem de conexão com o MySQL.
+As sete classes somaram **19 testes aprovados, sem falhas** na execução local de 27/09/2026. Os testes usam dados e serviços simulados e não dependem de conexão com o MySQL.
 
 > Ao executar todos os testes do projeto com `.\mvnw.cmd test`, um teste de inicialização do contexto Spring já existente pode precisar do MySQL configurado e em execução.
 
@@ -407,7 +417,10 @@ As seis classes somaram **16 testes aprovados, sem falhas** na execução realiz
 | Login | [AuthControllerTest](docs/evidencias/testes/auth-controller.JPG) |
 | Autorização dos veículos | [VehicleSecurityTest](docs/evidencias/testes/vehicle-security.JPG) |
 | Erros 404 e 409 | [VehicleErrorTest](docs/evidencias/testes/vehicle-error.JPG) |
-| Execução completa — 16 testes | [Resultado geral](docs/evidencias/testes/todos-os-testes.JPG) |
+| Execução anterior — 16 testes | [Resultado geral](docs/evidencias/testes/todos-os-testes.JPG) |
+| Execução atual — 19 testes | Captura da execução local a adicionar |
+| Criptografia do histórico | `CryptoUtilsTest`, captura a adicionar |
+| Pipeline de segurança | [GitHub Actions — execução anterior aprovada](https://github.com/AliAndrea1/Sprint-Soa-Ford/actions/runs/36296251088); conferir execução do novo commit |
 
 ---
 
