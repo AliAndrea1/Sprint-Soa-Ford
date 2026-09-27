@@ -1,6 +1,8 @@
 package com.autoinsight.autoinsight_api.service;
 
 import com.autoinsight.autoinsight_api.dto.*;
+import com.autoinsight.autoinsight_api.exception.VehicleAlreadyExistsException;
+import com.autoinsight.autoinsight_api.exception.VehicleNotFoundException;
 import com.autoinsight.autoinsight_api.model.*;
 import com.autoinsight.autoinsight_api.repository.*;
 import jakarta.transaction.Transactional;
@@ -26,16 +28,27 @@ public class VehicleService {
 
     public VehicleResponseDTO findById(Long id) {
         Vehicle vehicle = vehicleRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Veículo não encontrado com id: " + id));
+                .orElseThrow(() -> new VehicleNotFoundException(
+                        "Veículo não encontrado com id: " + id
+                ));
+
         return toResponseDTO(vehicle);
     }
 
-    public VehicleResponseDTO findByBrandModelVersion(String brand, String model, String version) {
+    public VehicleResponseDTO findByBrandModelVersion(
+            String brand,
+            String model,
+            String version) {
+
         Vehicle vehicle = vehicleRepository
-                .findByBrandIgnoreCaseAndModelIgnoreCaseAndVersionIgnoreCase(brand, model, version)
-                .orElseThrow(() -> new RuntimeException(
-                        "Veículo não encontrado: " + brand + " " + model + " " + version
+                .findByBrandIgnoreCaseAndModelIgnoreCaseAndVersionIgnoreCase(
+                        brand, model, version
+                )
+                .orElseThrow(() -> new VehicleNotFoundException(
+                        "Veículo não encontrado: "
+                                + brand + " " + model + " " + version
                 ));
+
         return toResponseDTO(vehicle);
     }
 
@@ -48,10 +61,17 @@ public class VehicleService {
 
     @Transactional
     public VehicleResponseDTO create(VehicleRequestDTO dto) {
-        if (vehicleRepository.existsByBrandIgnoreCaseAndModelIgnoreCaseAndVersionIgnoreCase(
-                dto.getBrand(), dto.getModel(), dto.getVersion())) {
-            throw new RuntimeException(
-                    "Veículo já cadastrado: " + dto.getBrand() + " " + dto.getModel() + " " + dto.getVersion()
+        if (vehicleRepository
+                .existsByBrandIgnoreCaseAndModelIgnoreCaseAndVersionIgnoreCase(
+                        dto.getBrand(),
+                        dto.getModel(),
+                        dto.getVersion())) {
+
+            throw new VehicleAlreadyExistsException(
+                    "Veículo já cadastrado: "
+                            + dto.getBrand() + " "
+                            + dto.getModel() + " "
+                            + dto.getVersion()
             );
         }
 
@@ -65,12 +85,16 @@ public class VehicleService {
         Vehicle saved = vehicleRepository.save(vehicle);
 
         if (dto.getSpecifications() != null) {
-            List<Specification> specs = dto.getSpecifications().stream()
+            List<Specification> specs = dto.getSpecifications()
+                    .stream()
                     .map(specDTO -> Specification.builder()
                             .vehicle(saved)
                             .attributeName(specDTO.getAttributeName())
-                            .attributeValue(specDTO.getAttributeValue() != null
-                                    ? specDTO.getAttributeValue() : "Não disponível")
+                            .attributeValue(
+                                    specDTO.getAttributeValue() != null
+                                            ? specDTO.getAttributeValue()
+                                            : "Não disponível"
+                            )
                             .unit(specDTO.getUnit())
                             .build())
                     .collect(Collectors.toList());
@@ -85,7 +109,9 @@ public class VehicleService {
     @Transactional
     public VehicleResponseDTO update(Long id, VehicleRequestDTO dto) {
         Vehicle vehicle = vehicleRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Veículo não encontrado com id: " + id));
+                .orElseThrow(() -> new VehicleNotFoundException(
+                        "Veículo não encontrado com id: " + id
+                ));
 
         vehicle.setBrand(dto.getBrand());
         vehicle.setModel(dto.getModel());
@@ -95,12 +121,16 @@ public class VehicleService {
         if (dto.getSpecifications() != null) {
             specificationRepository.deleteByVehicleId(id);
 
-            List<Specification> specs = dto.getSpecifications().stream()
+            List<Specification> specs = dto.getSpecifications()
+                    .stream()
                     .map(specDTO -> Specification.builder()
                             .vehicle(vehicle)
                             .attributeName(specDTO.getAttributeName())
-                            .attributeValue(specDTO.getAttributeValue() != null
-                                    ? specDTO.getAttributeValue() : "Não disponível")
+                            .attributeValue(
+                                    specDTO.getAttributeValue() != null
+                                            ? specDTO.getAttributeValue()
+                                            : "Não disponível"
+                            )
                             .unit(specDTO.getUnit())
                             .build())
                     .collect(Collectors.toList());
@@ -115,8 +145,11 @@ public class VehicleService {
     @Transactional
     public void delete(Long id) {
         if (!vehicleRepository.existsById(id)) {
-            throw new RuntimeException("Veículo não encontrado com id: " + id);
+            throw new VehicleNotFoundException(
+                    "Veículo não encontrado com id: " + id
+            );
         }
+
         vehicleRepository.deleteById(id);
     }
 
@@ -129,7 +162,8 @@ public class VehicleService {
                 .map(String::trim)
                 .distinct()
                 .map(name -> available.stream()
-                        .filter(spec -> spec.getAttributeName().equalsIgnoreCase(name))
+                        .filter(spec ->
+                                spec.getAttributeName().equalsIgnoreCase(name))
                         .findFirst()
                         .orElseGet(() -> SpecificationResponseDTO.builder()
                                 .attributeName(name)
@@ -139,16 +173,18 @@ public class VehicleService {
     }
 
     private VehicleResponseDTO toResponseDTO(Vehicle vehicle) {
-        List<SpecificationResponseDTO> specs = vehicle.getSpecifications() != null
-                ? vehicle.getSpecifications().stream()
-                .map(spec -> SpecificationResponseDTO.builder()
-                        .id(spec.getId())
-                        .attributeName(spec.getAttributeName())
-                        .attributeValue(spec.getAttributeValue())
-                        .unit(spec.getUnit())
-                        .build())
-                .collect(Collectors.toList())
-                : List.of();
+        List<SpecificationResponseDTO> specs =
+                vehicle.getSpecifications() != null
+                        ? vehicle.getSpecifications()
+                        .stream()
+                        .map(spec -> SpecificationResponseDTO.builder()
+                                .id(spec.getId())
+                                .attributeName(spec.getAttributeName())
+                                .attributeValue(spec.getAttributeValue())
+                                .unit(spec.getUnit())
+                                .build())
+                        .collect(Collectors.toList())
+                        : List.of();
 
         return VehicleResponseDTO.builder()
                 .id(vehicle.getId())

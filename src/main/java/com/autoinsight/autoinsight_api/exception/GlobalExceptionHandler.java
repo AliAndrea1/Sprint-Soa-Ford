@@ -5,7 +5,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,10 +14,19 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ApiResponseDTO<Void>> handleRuntime(RuntimeException ex) {
+    @ExceptionHandler(VehicleNotFoundException.class)
+    public ResponseEntity<ApiResponseDTO<Void>> handleNotFound(
+            VehicleNotFoundException ex) {
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
+                .body(ApiResponseDTO.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(VehicleAlreadyExistsException.class)
+    public ResponseEntity<ApiResponseDTO<Void>> handleConflict(
+            VehicleAlreadyExistsException ex) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
                 .body(ApiResponseDTO.error(ex.getMessage()));
     }
 
@@ -25,11 +35,10 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException ex) {
 
         Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach(error -> {
-            String field = ((FieldError) error).getField();
-            String message = error.getDefaultMessage();
-            errors.put(field, message);
-        });
+
+        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
+            errors.put(error.getField(), error.getDefaultMessage());
+        }
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
