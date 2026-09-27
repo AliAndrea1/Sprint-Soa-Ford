@@ -26,7 +26,7 @@
 - [Endpoints da API](#endpoints-da-api)
 - [Respostas HTTP](#respostas-http)
 - [Testes automatizados](#testes-automatizados)
-- [Evidências da execuçãos](#evidências-da-execução)
+- [Evidências da execução](#evidências-da-execução)
 - [Documentação Swagger](#documentação-swagger)
 
 ---
@@ -152,7 +152,9 @@ src/main/java/com/autoinsight/autoinsight_api/
 │   ├── SpecificationResponseDTO.java
 │   └── SearchHistoryResponseDTO.java
 ├── exception/
-│   └── GlobalExceptionHandler.java
+│   ├── GlobalExceptionHandler.java
+│   ├── VehicleAlreadyExistsException.java
+│   └── VehicleNotFoundException.java
 ├── model/
 │   ├── Vehicle.java
 │   ├── Specification.java
@@ -182,6 +184,7 @@ src/main/resources/
 src/test/java/com/autoinsight/autoinsight_api/
 ├── controller/
 │   ├── AuthControllerTest.java
+│   ├── VehicleErrorTest.java
 │   └── VehicleSecurityTest.java
 ├── security/
 │   ├── JwtFilterTest.java
@@ -364,8 +367,10 @@ Quando um atributo solicitado não está cadastrado para o veículo, a busca ret
 | `400 Bad Request` | Requisição com dados inválidos |
 | `401 Unauthorized` | Recurso protegido acessado sem autenticação ou login com credenciais inválidas |
 | `403 Forbidden` | Usuário autenticado sem permissão |
-| `404 Not Found` | Recurso não encontrado |
+| `404 Not Found` | Veículo solicitado não encontrado |
+| `409 Conflict` | Veículo já cadastrado |
 | `429 Too Many Requests` | Limite de requisições excedido |
+| `500 Internal Server Error` | Erro inesperado na aplicação |
 
 Os controllers utilizam `ApiResponseDTO` para as respostas da aplicação, com os campos `success`, `message` e `data`. Respostas produzidas diretamente pelo Spring Security podem vir sem corpo.
 
@@ -379,17 +384,18 @@ Os testes implementados verificam:
 - Geração, conteúdo, assinatura e expiração do JWT;
 - Comportamento do `JwtFilter` com token válido, token inválido e sem token;
 - Login com credenciais corretas e incorretas;
-- Acesso aos veículos sem token, consulta permitida para `ANALYST` e cadastro proibido para `ANALYST`.
+- Acesso aos veículos sem token, consulta permitida para `ANALYST` e cadastro proibido para `ANALYST`;
+- Respostas `404` para veículo inexistente e `409` para veículo já cadastrado.
 
-Para executar as cinco classes verificadas nesta sprint, na raiz do projeto:
+Para executar as seis classes verificadas nesta sprint, na raiz do projeto:
 
 ```powershell
-.\mvnw.cmd "-Dtest=VehicleServiceTest,JwtFilterTest,JwtUtilTest,AuthControllerTest,VehicleSecurityTest" test
+.\mvnw.cmd "-Dtest=VehicleServiceTest,JwtFilterTest,JwtUtilTest,AuthControllerTest,VehicleSecurityTest,VehicleErrorTest" test
 ```
 
-Essas cinco classes somaram **14 testes aprovados, sem falhas**, nas execuções realizadas durante a Sprint 3. Os testes usam dados e serviços simulados; não dependem de uma conexão com o MySQL.
+As seis classes somaram **16 testes aprovados, sem falhas** na execução realizada durante a Sprint 3. Os testes usam dados e serviços simulados e não dependem de conexão com o MySQL.
 
-> Ao executar todos os testes do projeto com `.\mvnw.cmd test`, algum teste de inicialização do contexto Spring já existente pode precisar do MySQL configurado e em execução.
+> Ao executar todos os testes do projeto com `.\mvnw.cmd test`, um teste de inicialização do contexto Spring já existente pode precisar do MySQL configurado e em execução.
 
 ### Evidências da execução
 
@@ -402,6 +408,8 @@ Essas cinco classes somaram **14 testes aprovados, sem falhas**, nas execuções
 | Autorização dos veículos | [VehicleSecurityTest](docs/evidencias/testes/vehicle-security.JPG) |
 | Erros 404 e 409 | [VehicleErrorTest](docs/evidencias/testes/vehicle-error.JPG) |
 | Execução completa — 16 testes | [Resultado geral](docs/evidencias/testes/todos-os-testes.JPG) |
+
+---
 
 ## Documentação Swagger
 
