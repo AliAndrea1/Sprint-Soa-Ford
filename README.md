@@ -323,7 +323,7 @@ Na versão publicada, o APK usa a URL HTTPS da API no Railway. Para executar a A
 | `admin` | `ADMIN` | Variável `ADMIN_PASSWORD` |
 | `analyst` | `ANALYST` | Variável `ANALYST_PASSWORD` |
 
-Para obter acesso de demonstração, solicite as credenciais ao responsável pelo projeto. Não inclua senhas no README nem em capturas de tela.
+Para obter acesso de demonstração, solicite as credenciais ao responsável pelo projeto.
 
 ### Veículos
 
