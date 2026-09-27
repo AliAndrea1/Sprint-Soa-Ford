@@ -395,12 +395,13 @@ Essas cinco classes somaram **14 testes aprovados, sem falhas**, nas execuções
 
 | Teste | Evidência |
 |---|---|
-| Seleção de especificações | [VehicleServiceTest](docs/evidencias/testes/vehicle-service.jpg) |
-| Filtro JWT | [JwtFilterTest](docs/evidencias/testes/jwt-filter.jpg) |
-| Geração e validação do JWT | [JwtUtilTest](docs/evidencias/testes/jwt-util.jpg) |
-| Login | [AuthControllerTest](docs/evidencias/testes/auth-controller.jpg) |
-| Autorização dos veículos | [VehicleSecurityTest](docs/evidencias/testes/vehicle-security.jpg) |
----
+| Seleção de especificações | [VehicleServiceTest](docs/evidencias/testes/vehicle-service.JPG) |
+| Filtro JWT | [JwtFilterTest](docs/evidencias/testes/jwt-filter.JPG) |
+| Geração e validação do JWT | [JwtUtilTest](docs/evidencias/testes/jwt-util.JPG) |
+| Login | [AuthControllerTest](docs/evidencias/testes/auth-controller.JPG) |
+| Autorização dos veículos | [VehicleSecurityTest](docs/evidencias/testes/vehicle-security.JPG) |
+| Erros 404 e 409 | [VehicleErrorTest](docs/evidencias/testes/vehicle-error.JPG) |
+| Execução completa — 16 testes | [Resultado geral](docs/evidencias/testes/todos-os-testes.JPG) |
 
 ## Documentação Swagger
 
