@@ -400,6 +400,7 @@ Essas cinco classes somaram **14 testes aprovados, sem falhas**, nas execuções
 | Geração e validação do JWT | [JwtUtilTest](docs/evidencias/testes/jwt-util.JPG) |
 | Login | [AuthControllerTest](docs/evidencias/testes/auth-controller.JPG) |
 | Autorização dos veículos | [VehicleSecurityTest](docs/evidencias/testes/vehicle-security.JPG) |
+| Erros 404 e 409 | [VehicleErrorTest](docs/evidencias/testes/vehicle-error.JPG) |
 
 ## Documentação Swagger
 
