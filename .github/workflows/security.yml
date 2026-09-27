@@ -22,8 +22,7 @@ jobs:
           java-version: '21'
           cache: maven
       - name: Executar testes sem depender do MySQL externo
-        run: ./mvnw -B -ntp -Dtest=AuthControllerTest,VehicleErrorTest,VehicleSecurityTest,JwtFilterTest,JwtUtilTest,VehicleServiceTest test
-
+        run: bash ./mvnw -B -ntp -Dtest=AuthControllerTest,VehicleErrorTest,VehicleSecurityTest,JwtFilterTest,JwtUtilTest,VehicleServiceTest test
   sast:
     name: Análise estática Semgrep
     runs-on: ubuntu-latest
