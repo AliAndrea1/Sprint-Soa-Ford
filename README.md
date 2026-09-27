@@ -460,6 +460,6 @@ O Flyway cria as tabelas ao iniciar a API. Os dados de veículos e especificaç�
 
 ## Demonstração do aplicativo
 
-O vídeo deve mostrar o APK instalado no Android, incluindo login, listagem, busca, comparação e histórico. A gravação pode utilizar o perfil `ADMIN`; o perfil `ANALYST` permite consultas e não pode cadastrar, alterar ou excluir veículos.
+https://github.com/user-attachments/assets/1993b5a3-4594-42fb-894b-83ad75a6f03b
 
-**Vídeo:** adicione aqui o link público ou acessível aos avaliadores após publicar a gravação.
+
