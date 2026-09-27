@@ -28,6 +28,8 @@
 - [Testes automatizados](#testes-automatizados)
 - [Evidências da execução](#evidências-da-execução)
 - [Documentação Swagger](#documentação-swagger)
+- [Aplicação publicada](#aplicação-publicada)
+- [Demonstração do aplicativo](#demonstração-do-aplicativo)
 
 ---
 
@@ -232,18 +234,16 @@ O arquivo `src/main/resources/application.properties` lê as seguintes variávei
 
 | Variável | Finalidade | Padrão de desenvolvimento |
 |---|---|---|
+| `DB_URL` | Endereço JDBC do MySQL | `jdbc:mysql://localhost:3306/autoinsight_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC` |
 | `DB_USERNAME` | Usuário do MySQL | `root` |
 | `DB_PASSWORD` | Senha do MySQL | `root123` |
 | `JWT_SECRET` | Chave de assinatura do JWT | Valor definido no `application.properties` |
 | `JWT_EXPIRATION` | Validade do JWT em milissegundos | `86400000` (24 horas) |
 | `CRYPTO_KEY` | Chave de criptografia AES/GCM | Valor definido no `application.properties` |
 | `CORS_ALLOWED_ORIGINS` | Origens permitidas no acesso pelo navegador | `http://localhost:3000,http://localhost:8080,http://localhost:8081` |
+| `SERVER_FORWARD_HEADERS_STRATEGY` | Reconhecer o HTTPS encaminhado pelo proxy | Não necessária na execução local; no Railway, `framework` |
 
-A URL do banco está configurada diretamente no `application.properties`:
-
-```text
-jdbc:mysql://localhost:3306/autoinsight_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
-```
+Para uso local, a API se conecta ao MySQL em `localhost:3306/autoinsight_db`. No Railway, `DB_URL`, `DB_USERNAME` e `DB_PASSWORD` apontam para o serviço MySQL do mesmo projeto pela rede interna. Os valores das senhas e das chaves não devem ser publicados no GitHub.
 
 No Windows PowerShell, um exemplo de configuração da senha do banco para a sessão atual é:
 
@@ -288,7 +288,7 @@ Por padrão, a API fica disponível em:
 http://localhost:8080
 ```
 
-Para acesso pelo celular, o aplicativo deve apontar para o IP do computador na rede local. Celular e computador devem estar na mesma rede.
+Na versão publicada, o APK usa a URL HTTPS da API no Railway. Para executar a API localmente com o app, configure uma URL local acessível pelo celular e mantenha os dois dispositivos na mesma rede.
 
 ---
 
@@ -430,3 +430,36 @@ Para testar um endpoint protegido:
 5. Execute o endpoint desejado.
 
 Não inclua tokens em capturas de tela ou arquivos de evidência.
+
+
+---
+
+## Aplicação publicada
+
+A API e o banco MySQL estão hospedados no Railway. O APK Android utiliza a API publicada por HTTPS e foi testado em um dispositivo físico com dados móveis.
+
+| Recurso | Endereço |
+|---|---|
+| Swagger / OpenAPI | [Documentação interativa](https://sprint-soa-ford-production.up.railway.app/swagger-ui.html) |
+| URL base da API | `https://sprint-soa-ford-production.up.railway.app/api` |
+| APK Android | [Página do build no Expo](https://expo.dev/accounts/aliandrea/projects/autoinsight/builds/36dcb7f3-991d-4539-9449-e1fc4ab4d321) |
+
+O endereço `/api` é um prefixo: as chamadas utilizam caminhos como `/api/auth/login` e `/api/vehicles`. A raiz do domínio não apresenta uma página da aplicação.
+
+### Funcionamento no Railway
+
+```mermaid
+flowchart LR
+    APP["APK AutoInsight"] --> API["API Spring Boot no Railway"]
+    API --> DB[("MySQL no Railway")]
+```
+
+O aplicativo obtém um JWT no login e envia o token nas requisições protegidas. A API aplica as permissões dos perfis `ADMIN` e `ANALYST`. O serviço da API acessa o MySQL pela rede interna do Railway, usando as variáveis `DB_URL`, `DB_USERNAME` e `DB_PASSWORD`. A variável `SERVER_FORWARD_HEADERS_STRATEGY=framework` permite que o Swagger gere URLs HTTPS atrás do proxy.
+
+O Flyway cria as tabelas ao iniciar a API. Os dados de veículos e especificações usados na demonstração foram importados do banco local para o banco hospedado. A exportação desses dados não deve ser publicada com credenciais.
+
+## Demonstração do aplicativo
+
+O vídeo deve mostrar o APK instalado no Android, incluindo login, listagem, busca, comparação e histórico. A gravação pode utilizar o perfil `ADMIN`; o perfil `ANALYST` permite consultas e não pode cadastrar, alterar ou excluir veículos.
+
+**Vídeo:** adicione aqui o link público ou acessível aos avaliadores após publicar a gravação.
